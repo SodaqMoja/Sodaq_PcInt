@@ -38,6 +38,7 @@ public:
   static void handlePCINT0();
   static void handlePCINT1();
   static void handlePCINT2();
+  static void handlePCINT3();
 
   // For diagnostic purposes
   static void (*getFunc(uint8_t group, uint8_t nr))(void);

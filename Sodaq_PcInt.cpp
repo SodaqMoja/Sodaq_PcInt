@@ -66,16 +66,16 @@ void   (*PcInt::_funcs3[8])(void);
 #endif
 
 /*
- * Set the function pointer in the array using the port's pin number (0..7)
+ * Set the function pointer in the array using the port's pin bit mask
  */
-static void setFunc(void (*funcs[])(void), uint8_t portPin, void (*func)(void))
+static void setFunc(void (*funcs[])(void), uint8_t portBitMask, void (*func)(void))
 {
   for (uint8_t i = 0; i < 8; ++i) {
-    if (portPin & 1) {
+    if (portBitMask & 1) {
       funcs[i] = func;
       break;
     }
-    portPin >>= 1;
+    portBitMask >>= 1;
   }
 }
 
@@ -84,23 +84,29 @@ void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
   volatile uint8_t * pcicr = digitalPinToPCICR(pin);
   volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
   if (pcicr && pcmsk) {
-    uint8_t port = digitalPinToPort(pin);
-    uint8_t portPin = digitalPinToBitMask(pin);
-    // FIXME We're using hardcoded numbers taken from Arduino.h, PA=0, PB=1, PC=2, ...
-    // FIXME We're assuming here that:
-    //    PB maps to PCINT0..PCINT7
-    //    PC maps to PCINT8..PCINT14
-    //    PD maps to PCINT16..PCINT23
-    switch (port) {
-    case 2:     // PB
-      setFunc(_funcs0, portPin, func);
+    uint8_t pcintGroup = digitalPinToPCICRbit(pin);
+    uint8_t portBitMask = digitalPinToBitMask(pin);
+    switch (pcintGroup) {
+#if defined(PCINT0_vect)
+    case 0:
+      setFunc(_funcs0, portBitMask, func);
       break;
-    case 3:     // PC
-      setFunc(_funcs1, portPin, func);
+#endif
+#if defined(PCINT1_vect)
+    case 1:
+      setFunc(_funcs1, portBitMask, func);
       break;
-    case 4:     // PD
-      setFunc(_funcs2, portPin, func);
+#endif
+#if defined(PCINT2_vect)
+    case 2:
+      setFunc(_funcs2, portBitMask, func);
       break;
+#endif
+#if defined(PCINT3_vect)
+    case 3:
+      setFunc(_funcs3, portBitMask, func);
+      break;
+#endif
     }
     *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
     *pcicr |= _BV(digitalPinToPCICRbit(pin));
