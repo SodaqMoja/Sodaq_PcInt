@@ -26,6 +26,8 @@
 #ifndef SODAQ_PCINT_H_
 #define SODAQ_PCINT_H_
 
+#include <stdint.h>
+
 class PcInt
 {
 public:
