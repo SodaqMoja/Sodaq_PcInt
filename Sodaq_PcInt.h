@@ -33,14 +33,14 @@ class PcInt
 public:
   static void attachInterrupt(uint8_t pin, void (*func)(void));
   static void detachInterrupt(uint8_t pin);
-  static void enableInterrupt();
-  static void disableInterrupt();
+  static void enableInterrupt(uint8_t pin);
+  static void disableInterrupt(uint8_t pin);
 
   // These must be public so they can be called from ISR
-  static void handlePCINT0();
-  static void handlePCINT1();
-  static void handlePCINT2();
-  static void handlePCINT3();
+  static inline void handlePCINT0() __attribute__((__always_inline__));
+  static inline void handlePCINT1() __attribute__((__always_inline__));
+  static inline void handlePCINT2() __attribute__((__always_inline__));
+  static inline void handlePCINT3() __attribute__((__always_inline__));
 
   // For diagnostic purposes
   static void (*getFunc(uint8_t group, uint8_t nr))(void);

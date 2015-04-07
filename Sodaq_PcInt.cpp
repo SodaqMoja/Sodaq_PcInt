@@ -118,6 +118,22 @@ void PcInt::detachInterrupt(uint8_t pin)
   //_funcs[pin] = 0;
 }
 
+void PcInt::enableInterrupt(uint8_t pin)
+{
+  volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
+  if (pcmsk) {
+    *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
+  }
+}
+
+void PcInt::disableInterrupt(uint8_t pin)
+{
+  volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
+  if (pcmsk) {
+    *pcmsk &= ~_BV(digitalPinToPCMSKbit(pin));
+  }
+}
+
 /*
  * Get the installed function pointer
  *
@@ -156,7 +172,7 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
 }
 
 #if defined(PCINT0_vect)
-void PcInt::handlePCINT0()
+inline void PcInt::handlePCINT0()
 {
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (_funcs0[nr]) {
@@ -171,7 +187,7 @@ ISR(PCINT0_vect)
 #endif
 
 #if defined(PCINT1_vect)
-void PcInt::handlePCINT1()
+inline void PcInt::handlePCINT1()
 {
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (_funcs1[nr]) {
@@ -186,7 +202,7 @@ ISR(PCINT1_vect)
 #endif
 
 #if defined(PCINT2_vect)
-void PcInt::handlePCINT2()
+inline void PcInt::handlePCINT2()
 {
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (_funcs2[nr]) {
@@ -201,7 +217,7 @@ ISR(PCINT2_vect)
 #endif
 
 #if defined(PCINT3_vect)
-void PcInt::handlePCINT3()
+inline void PcInt::handlePCINT3()
 {
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (_funcs3[nr]) {
