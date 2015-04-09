@@ -241,16 +241,16 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
 inline void PcInt::handlePCINT0()
 {
   uint8_t changedPins = port0state ^ PINA;
+  port0state = PINA;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port0rising & PINA) | (_BV(nr) & port0falling & ~PINA))) {
+      if (((_BV(nr) & port0rising & port0state) | (_BV(nr) & port0falling & ~port0state))) {
         if (_funcs0[nr]) {
           (*_funcs0[nr])();
         }
       }
     }
   }
-  port0state = PINA;
 }
 ISR(PCINT0_vect)
 {
@@ -262,16 +262,16 @@ ISR(PCINT0_vect)
 inline void PcInt::handlePCINT1()
 {
   uint8_t changedPins = port1state ^ PINB;
+  port1state = PINB;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port1rising & PINB) | (_BV(nr) & port1falling & ~PINB))) {
+      if (((_BV(nr) & port1rising & port1state) | (_BV(nr) & port1falling & ~port1state))) {
         if (_funcs1[nr]) {
           (*_funcs1[nr])();
         }
       }
     }
   }
-  port1state = PINB;
 }
 ISR(PCINT1_vect)
 {
@@ -283,16 +283,16 @@ ISR(PCINT1_vect)
 inline void PcInt::handlePCINT2()
 {
   uint8_t changedPins = port2state ^ PINC;
+  port2state = PINC;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port2rising & PINC) | (_BV(nr) & port2falling & ~PINC))) {
+      if (((_BV(nr) & port2rising & port2state) | (_BV(nr) & port2falling & ~port2state))) {
         if (_funcs2[nr]) {
           (*_funcs2[nr])();
         }
       }
     }
   }
-  port2state = PINC;
 }
 ISR(PCINT2_vect)
 {
@@ -304,16 +304,17 @@ ISR(PCINT2_vect)
 inline void PcInt::handlePCINT3()
 {
   uint8_t changedPins = port3state ^ PIND;
+  port3state = PIND;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port3rising & PIND) | (_BV(nr) & port3falling & ~PIND))) {
+      if (((_BV(nr) & port3rising & port3state) | (_BV(nr) & port3falling & ~port3state))) {
         if (_funcs3[nr]) {
           (*_funcs3[nr])();
         }
       }
     }
   }
-  port3state = PIND;
+  
 }
 ISR(PCINT3_vect)
 {
