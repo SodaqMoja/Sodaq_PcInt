@@ -56,19 +56,27 @@
 
 #if defined(PCINT0_vect)
 void   (*PcInt::_funcs0[8])(void);
-volatile uint8_t PcInt::port0state;
+volatile uint8_t PcInt::port0state = 0;
+uint8_t PcInt::port0rising = 0;
+uint8_t PcInt::port0falling = 0;
 #endif
 #if defined(PCINT1_vect)
 void   (*PcInt::_funcs1[8])(void);
-volatile uint8_t PcInt::port1state;
+volatile uint8_t PcInt::port1state = 0;
+uint8_t PcInt::port1rising = 0;
+uint8_t PcInt::port1falling = 0;
 #endif
 #if defined(PCINT2_vect)
 void   (*PcInt::_funcs2[8])(void);
-volatile uint8_t PcInt::port2state;
+volatile uint8_t PcInt::port2state = 0;
+uint8_t PcInt::port2rising = 0;
+uint8_t PcInt::port2falling = 0;
 #endif
 #if defined(PCINT3_vect)
 void   (*PcInt::_funcs3[8])(void);
-volatile uint8_t PcInt::port3state;
+volatile uint8_t PcInt::port3state = 0;
+uint8_t PcInt::port3rising = 0;
+uint8_t PcInt::port3falling = 0;
 #endif
 
 /*
@@ -85,7 +93,7 @@ static void setFunc(void (*funcs[])(void), uint8_t portBitMask, void (*func)(voi
   }
 }
 
-void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
+void PcInt::attachInterrupt(uint8_t pin, void(*func)(void), uint8_t modeMask)
 {
   volatile uint8_t * pcicr = digitalPinToPCICR(pin);
   volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
@@ -96,24 +104,32 @@ void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
 #if defined(PCINT0_vect)
     case 0:
       setFunc(_funcs0, portBitMask, func);
+      port0rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
+      port0falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
       port0state = PINA;
       break;
 #endif
 #if defined(PCINT1_vect)
     case 1:
       setFunc(_funcs1, portBitMask, func);
+      port1rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
+      port1falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
       port1state = PINB;
       break;
 #endif
 #if defined(PCINT2_vect)
     case 2:
       setFunc(_funcs2, portBitMask, func);
+      port2rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
+      port2falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
       port2state = PINC;
       break;
 #endif
 #if defined(PCINT3_vect)
     case 3:
       setFunc(_funcs3, portBitMask, func);
+      port3rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
+      port3falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
       port3state = PIND;
       break;
 #endif
@@ -134,21 +150,29 @@ void PcInt::detachInterrupt(uint8_t pin)
 #if defined(PCINT0_vect)
     case 0:
       setFunc(_funcs0, portBitMask, NULL);
+      port0rising &= ~portBitMask;
+      port0falling &= ~portBitMask; 
       break;
 #endif
 #if defined(PCINT1_vect)
     case 1:
       setFunc(_funcs1, portBitMask, NULL);
+      port1rising &= ~portBitMask;
+      port1falling &= ~portBitMask;
       break;
 #endif
 #if defined(PCINT2_vect)
     case 2:
       setFunc(_funcs2, portBitMask, NULL);
+      port2rising &= ~portBitMask;
+      port2falling &= ~portBitMask;
       break;
 #endif
 #if defined(PCINT3_vect)
     case 3:
       setFunc(_funcs3, portBitMask, NULL);
+      port3rising &= ~portBitMask;
+      port3falling &= ~portBitMask;
       break;
 #endif
     }
@@ -219,8 +243,10 @@ inline void PcInt::handlePCINT0()
   uint8_t changedPins = port0state ^ PINA;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (_funcs0[nr]) {
-        (*_funcs0[nr])();
+      if (((_BV(nr) & port0rising & PINA) | (_BV(nr) & port0falling & ~PINA))) {
+        if (_funcs0[nr]) {
+          (*_funcs0[nr])();
+        }
       }
     }
   }
@@ -238,8 +264,10 @@ inline void PcInt::handlePCINT1()
   uint8_t changedPins = port1state ^ PINB;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (_funcs1[nr]) {
-        (*_funcs1[nr])();
+      if (((_BV(nr) & port1rising & PINB) | (_BV(nr) & port1falling & ~PINB))) {
+        if (_funcs1[nr]) {
+          (*_funcs1[nr])();
+        }
       }
     }
   }
@@ -257,8 +285,10 @@ inline void PcInt::handlePCINT2()
   uint8_t changedPins = port2state ^ PINC;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (_funcs2[nr]) {
-        (*_funcs2[nr])();
+      if (((_BV(nr) & port2rising & PINC) | (_BV(nr) & port2falling & ~PINC))) {
+        if (_funcs2[nr]) {
+          (*_funcs2[nr])();
+        }
       }
     }
   }
@@ -276,8 +306,10 @@ inline void PcInt::handlePCINT3()
   uint8_t changedPins = port3state ^ PIND;
   for (uint8_t nr = 0; nr < 8; ++nr) {
     if (changedPins & _BV(nr)) {
-      if (_funcs3[nr]) {
-        (*_funcs3[nr])();
+      if (((_BV(nr) & port3rising & PIND) | (_BV(nr) & port3falling & ~PIND))) {
+        if (_funcs3[nr]) {
+          (*_funcs3[nr])();
+        }
       }
     }
   }
