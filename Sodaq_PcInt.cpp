@@ -52,17 +52,23 @@
 
 #include "Sodaq_PcInt.h"
 
+
+
 #if defined(PCINT0_vect)
 void   (*PcInt::_funcs0[8])(void);
+volatile uint8_t PcInt::port0state;
 #endif
 #if defined(PCINT1_vect)
 void   (*PcInt::_funcs1[8])(void);
+volatile uint8_t PcInt::port1state;
 #endif
 #if defined(PCINT2_vect)
 void   (*PcInt::_funcs2[8])(void);
+volatile uint8_t PcInt::port2state;
 #endif
 #if defined(PCINT3_vect)
 void   (*PcInt::_funcs3[8])(void);
+volatile uint8_t PcInt::port3state;
 #endif
 
 /*
@@ -90,21 +96,25 @@ void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
 #if defined(PCINT0_vect)
     case 0:
       setFunc(_funcs0, portBitMask, func);
+      port0state = PINA;
       break;
 #endif
 #if defined(PCINT1_vect)
     case 1:
       setFunc(_funcs1, portBitMask, func);
+      port1state = PINB;
       break;
 #endif
 #if defined(PCINT2_vect)
     case 2:
       setFunc(_funcs2, portBitMask, func);
+      port2state = PINC;
       break;
 #endif
 #if defined(PCINT3_vect)
     case 3:
       setFunc(_funcs3, portBitMask, func);
+      port3state = PIND;
       break;
 #endif
     }
@@ -206,11 +216,15 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
 #if defined(PCINT0_vect)
 inline void PcInt::handlePCINT0()
 {
+  uint8_t changedPins = port0state ^ PINA;
   for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs0[nr]) {
-      (*_funcs0[nr])();
+    if (changedPins & _BV(nr)) {
+      if (_funcs0[nr]) {
+        (*_funcs0[nr])();
+      }
     }
   }
+  port0state = PINA;
 }
 ISR(PCINT0_vect)
 {
@@ -221,11 +235,15 @@ ISR(PCINT0_vect)
 #if defined(PCINT1_vect)
 inline void PcInt::handlePCINT1()
 {
+  uint8_t changedPins = port1state ^ PINB;
   for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs1[nr]) {
-      (*_funcs1[nr])();
+    if (changedPins & _BV(nr)) {
+      if (_funcs1[nr]) {
+        (*_funcs1[nr])();
+      }
     }
   }
+  port1state = PINB;
 }
 ISR(PCINT1_vect)
 {
@@ -236,11 +254,15 @@ ISR(PCINT1_vect)
 #if defined(PCINT2_vect)
 inline void PcInt::handlePCINT2()
 {
+  uint8_t changedPins = port2state ^ PINC;
   for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs2[nr]) {
-      (*_funcs2[nr])();
+    if (changedPins & _BV(nr)) {
+      if (_funcs2[nr]) {
+        (*_funcs2[nr])();
+      }
     }
   }
+  port2state = PINC;
 }
 ISR(PCINT2_vect)
 {
@@ -251,11 +273,15 @@ ISR(PCINT2_vect)
 #if defined(PCINT3_vect)
 inline void PcInt::handlePCINT3()
 {
+  uint8_t changedPins = port3state ^ PIND;
   for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs3[nr]) {
-      (*_funcs3[nr])();
+    if (changedPins & _BV(nr)) {
+      if (_funcs3[nr]) {
+        (*_funcs3[nr])();
+      }
     }
   }
+  port3state = PIND;
 }
 ISR(PCINT3_vect)
 {

@@ -44,6 +44,7 @@ public:
 
   // For diagnostic purposes
   static void (*getFunc(uint8_t group, uint8_t nr))(void);
+
 private:
   static void   (*_funcs0[8])(void);
 #if defined(PCINT1_vect)
