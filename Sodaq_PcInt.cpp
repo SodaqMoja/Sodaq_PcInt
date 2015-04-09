@@ -115,7 +115,39 @@ void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
 
 void PcInt::detachInterrupt(uint8_t pin)
 {
-  //_funcs[pin] = 0;
+  volatile uint8_t * pcicr = digitalPinToPCICR(pin);
+  volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
+  if (pcicr && pcmsk) {
+    uint8_t pcintGroup = digitalPinToPCICRbit(pin);
+    uint8_t portBitMask = digitalPinToBitMask(pin);
+    switch (pcintGroup) {
+#if defined(PCINT0_vect)
+    case 0:
+      setFunc(_funcs0, portBitMask, NULL);
+      break;
+#endif
+#if defined(PCINT1_vect)
+    case 1:
+      setFunc(_funcs1, portBitMask, NULL);
+      break;
+#endif
+#if defined(PCINT2_vect)
+    case 2:
+      setFunc(_funcs2, portBitMask, NULL);
+      break;
+#endif
+#if defined(PCINT3_vect)
+    case 3:
+      setFunc(_funcs3, portBitMask, NULL);
+      break;
+#endif
+    }
+    *pcmsk &= ~_BV(digitalPinToPCMSKbit(pin));
+    //Switch off the group if all of the group are now off
+    if (*pcmsk == 0x00F){ //Alternatively "if (!*pcmsk)"
+      *pcicr &= ~_BV(digitalPinToPCICRbit(pin));
+    }
+  }
 }
 
 void PcInt::enableInterrupt(uint8_t pin)
