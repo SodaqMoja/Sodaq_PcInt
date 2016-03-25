@@ -31,7 +31,7 @@
 class PcInt
 {
 public:
-  static void attachInterrupt(uint8_t pin, void (*func)(void));
+  static void attachInterrupt(uint8_t pin, void(*func)(void), uint8_t modeMask=CHANGE_MODE);
   static void detachInterrupt(uint8_t pin);
   static void enableInterrupt(uint8_t pin);
   static void disableInterrupt(uint8_t pin);
@@ -44,16 +44,33 @@ public:
 
   // For diagnostic purposes
   static void (*getFunc(uint8_t group, uint8_t nr))(void);
+
+  const static uint8_t RISING_MODE = 0b00000001;
+  const static uint8_t FALLING_MODE = 0b00000010;
+  const static uint8_t CHANGE_MODE = 0b00000011;
+
 private:
   static void   (*_funcs0[8])(void);
+  static volatile uint8_t port0state;
+  static uint8_t port0rising;
+  static uint8_t port0falling;
 #if defined(PCINT1_vect)
   static void   (*_funcs1[8])(void);
+  static volatile uint8_t port1state;
+  static uint8_t port1rising;
+  static uint8_t port1falling;
 #endif
 #if defined(PCINT2_vect)
   static void   (*_funcs2[8])(void);
+  static volatile uint8_t port2state;
+  static uint8_t port2rising;
+  static uint8_t port2falling;
 #endif
 #if defined(PCINT3_vect)
   static void   (*_funcs3[8])(void);
+  static volatile uint8_t port3state;
+  static uint8_t port3rising;
+  static uint8_t port3falling;
 #endif
 };
 
