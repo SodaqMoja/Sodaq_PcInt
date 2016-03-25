@@ -26,12 +26,13 @@
 #ifndef SODAQ_PCINT_H_
 #define SODAQ_PCINT_H_
 
+#include <Arduino.h>
 #include <stdint.h>
 
 class PcInt
 {
 public:
-  static void attachInterrupt(uint8_t pin, void(*func)(void), uint8_t modeMask=CHANGE_MODE);
+  static void attachInterrupt(uint8_t pin, void(*func)(void), uint8_t mode=CHANGE);
   static void detachInterrupt(uint8_t pin);
   static void enableInterrupt(uint8_t pin);
   static void disableInterrupt(uint8_t pin);
@@ -44,10 +45,6 @@ public:
 
   // For diagnostic purposes
   static void (*getFunc(uint8_t group, uint8_t nr))(void);
-
-  const static uint8_t RISING_MODE = 0b00000001;
-  const static uint8_t FALLING_MODE = 0b00000010;
-  const static uint8_t CHANGE_MODE = 0b00000011;
 };
 
 #endif /* SODAQ_PCINT_H_ */

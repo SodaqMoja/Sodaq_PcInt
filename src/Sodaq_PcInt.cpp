@@ -47,10 +47,8 @@
  * it can see which of the port pins changed.
  */
 
-#include <avr/interrupt.h>
-#include <Arduino.h>
-
 #include "Sodaq_PcInt.h"
+#include <avr/interrupt.h>
 
 class PcIntPort
 {
@@ -96,7 +94,7 @@ static void setFunc(void (*funcs[])(void), uint8_t portBitMask, void (*func)(voi
   }
 }
 
-void PcInt::attachInterrupt(uint8_t pin, void(*func)(void), uint8_t modeMask)
+void PcInt::attachInterrupt(uint8_t pin, void(*func)(void), uint8_t mode)
 {
   volatile uint8_t * pcicr = digitalPinToPCICR(pin);
   volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
@@ -107,32 +105,32 @@ void PcInt::attachInterrupt(uint8_t pin, void(*func)(void), uint8_t modeMask)
 #if defined(PCINT0_vect)
     case 0:
       setFunc(port0.funcs, portBitMask, func);
-      port0.rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
-      port0.falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
+      port0.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port0.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
       port0.state = PINA;
       break;
 #endif
 #if defined(PCINT1_vect)
     case 1:
       setFunc(port1.funcs, portBitMask, func);
-      port1.rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
-      port1.falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
+      port1.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port1.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
       port1.state = PINB;
       break;
 #endif
 #if defined(PCINT2_vect)
     case 2:
       setFunc(port2.funcs, portBitMask, func);
-      port2.rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
-      port2.falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
+      port2.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port2.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
       port2.state = PINC;
       break;
 #endif
 #if defined(PCINT3_vect)
     case 3:
       setFunc(port3.funcs, portBitMask, func);
-      port3.rising |= (modeMask & RISING_MODE) ? portBitMask : 0;
-      port3.falling |= (modeMask & FALLING_MODE) ? portBitMask : 0;
+      port3.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port3.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
       port3.state = PIND;
       break;
 #endif
