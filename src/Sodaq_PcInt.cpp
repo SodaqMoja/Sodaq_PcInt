@@ -239,7 +239,7 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
 }
 
 #if defined(PCINT0_vect)
-inline void PcInt::handlePCINT0()
+ISR(PCINT0_vect)
 {
   uint8_t changedPins = port0.state ^ PINA;
   port0.state = PINA;
@@ -253,14 +253,10 @@ inline void PcInt::handlePCINT0()
     }
   }
 }
-ISR(PCINT0_vect)
-{
-  PcInt::handlePCINT0();
-}
 #endif
 
 #if defined(PCINT1_vect)
-inline void PcInt::handlePCINT1()
+ISR(PCINT1_vect)
 {
   uint8_t changedPins = port1.state ^ PINB;
   port1.state = PINB;
@@ -274,14 +270,10 @@ inline void PcInt::handlePCINT1()
     }
   }
 }
-ISR(PCINT1_vect)
-{
-  PcInt::handlePCINT1();
-}
 #endif
 
 #if defined(PCINT2_vect)
-inline void PcInt::handlePCINT2()
+ISR(PCINT2_vect)
 {
   uint8_t changedPins = port2.state ^ PINC;
   port2.state = PINC;
@@ -295,14 +287,10 @@ inline void PcInt::handlePCINT2()
     }
   }
 }
-ISR(PCINT2_vect)
-{
-  PcInt::handlePCINT2();
-}
 #endif
 
 #if defined(PCINT3_vect)
-inline void PcInt::handlePCINT3()
+ISR(PCINT3_vect)
 {
   uint8_t changedPins = port3.state ^ PIND;
   port3.state = PIND;
@@ -315,10 +303,5 @@ inline void PcInt::handlePCINT3()
       }
     }
   }
-  
-}
-ISR(PCINT3_vect)
-{
-  PcInt::handlePCINT3();
 }
 #endif
