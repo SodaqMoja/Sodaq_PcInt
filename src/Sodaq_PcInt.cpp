@@ -238,70 +238,34 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
   return funcs[nr];
 }
 
-#if defined(PCINT0_vect)
-ISR(PCINT0_vect)
-{
-  uint8_t changedPins = port0.state ^ PINA;
-  port0.state = PINA;
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port0.rising & port0.state) | (_BV(nr) & port0.falling & ~port0.state))) {
-        if (port0.funcs[nr]) {
-          (*port0.funcs[nr])();
-        }
-      }
-    }
+#define IMPLEMENT_ISR(vect, port, pin_register) \
+  ISR(vect) \
+  { \
+    uint8_t changedPins = port.state ^ pin_register; \
+    port.state = pin_register; \
+    for (uint8_t nr = 0; nr < 8; ++nr) { \
+      if (changedPins & _BV(nr)) { \
+        if (((_BV(nr) & port.rising & port.state) | (_BV(nr) & port.falling & ~port.state))) { \
+          if (port.funcs[nr]) { \
+            (*port.funcs[nr])(); \
+          } \
+        } \
+      } \
+    } \
   }
-}
+
+#if defined(PCINT0_vect)
+IMPLEMENT_ISR(PCINT0_vect, port0, PINA)
 #endif
 
 #if defined(PCINT1_vect)
-ISR(PCINT1_vect)
-{
-  uint8_t changedPins = port1.state ^ PINB;
-  port1.state = PINB;
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port1.rising & port1.state) | (_BV(nr) & port1.falling & ~port1.state))) {
-        if (port1.funcs[nr]) {
-          (*port1.funcs[nr])();
-        }
-      }
-    }
-  }
-}
+IMPLEMENT_ISR(PCINT1_vect, port1, PINB)
 #endif
 
 #if defined(PCINT2_vect)
-ISR(PCINT2_vect)
-{
-  uint8_t changedPins = port2.state ^ PINC;
-  port2.state = PINC;
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port2.rising & port2.state) | (_BV(nr) & port2.falling & ~port2.state))) {
-        if (port2.funcs[nr]) {
-          (*port2.funcs[nr])();
-        }
-      }
-    }
-  }
-}
+IMPLEMENT_ISR(PCINT2_vect, port2, PINC)
 #endif
 
 #if defined(PCINT3_vect)
-ISR(PCINT3_vect)
-{
-  uint8_t changedPins = port3.state ^ PIND;
-  port3.state = PIND;
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (changedPins & _BV(nr)) {
-      if (((_BV(nr) & port3.rising & port3.state) | (_BV(nr) & port3.falling & ~port3.state))) {
-        if (port3.funcs[nr]) {
-          (*port3.funcs[nr])();
-        }
-      }
-    }
-  }
-}
+IMPLEMENT_ISR(PCINT3_vect, port3, PIND)
 #endif
