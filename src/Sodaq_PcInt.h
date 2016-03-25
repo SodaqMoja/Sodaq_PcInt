@@ -48,30 +48,6 @@ public:
   const static uint8_t RISING_MODE = 0b00000001;
   const static uint8_t FALLING_MODE = 0b00000010;
   const static uint8_t CHANGE_MODE = 0b00000011;
-
-private:
-  static void   (*_funcs0[8])(void);
-  static volatile uint8_t port0state;
-  static uint8_t port0rising;
-  static uint8_t port0falling;
-#if defined(PCINT1_vect)
-  static void   (*_funcs1[8])(void);
-  static volatile uint8_t port1state;
-  static uint8_t port1rising;
-  static uint8_t port1falling;
-#endif
-#if defined(PCINT2_vect)
-  static void   (*_funcs2[8])(void);
-  static volatile uint8_t port2state;
-  static uint8_t port2rising;
-  static uint8_t port2falling;
-#endif
-#if defined(PCINT3_vect)
-  static void   (*_funcs3[8])(void);
-  static volatile uint8_t port3state;
-  static uint8_t port3rising;
-  static uint8_t port3falling;
-#endif
 };
 
 #endif /* SODAQ_PCINT_H_ */
