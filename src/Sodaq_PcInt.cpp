@@ -48,6 +48,7 @@
  */
 
 #include "Sodaq_PcInt.h"
+#include "PinChangeInterruptBoards.h"
 #include <avr/interrupt.h>
 
 class PcIntPort
@@ -67,16 +68,16 @@ public:
 };
 
 
-#if defined(PCINT0_vect)
+#if defined(PCINT_INPUT_PORT0)
 PcIntPort port0;
 #endif
-#if defined(PCINT1_vect)
+#if defined(PCINT_INPUT_PORT1)
 PcIntPort port1;
 #endif
-#if defined(PCINT2_vect)
+#if defined(PCINT_INPUT_PORT2)
 PcIntPort port2;
 #endif
-#if defined(PCINT3_vect)
+#if defined(PCINT_INPUT_PORT3)
 PcIntPort port3;
 #endif
 
@@ -102,36 +103,36 @@ void PcInt::attachInterrupt(uint8_t pin, void(*func)(void), uint8_t mode)
     uint8_t pcintGroup = digitalPinToPCICRbit(pin);
     uint8_t portBitMask = digitalPinToBitMask(pin);
     switch (pcintGroup) {
-#if defined(PCINT0_vect)
+#if defined(PCINT_INPUT_PORT0)
     case 0:
       setFunc(port0.funcs, portBitMask, func);
       port0.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
       port0.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port0.state = PINA;
+      port0.state = PCINT_INPUT_PORT0;
       break;
 #endif
-#if defined(PCINT1_vect)
+#if defined(PCINT_INPUT_PORT1)
     case 1:
       setFunc(port1.funcs, portBitMask, func);
       port1.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
       port1.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port1.state = PINB;
+      port1.state = PCINT_INPUT_PORT1;
       break;
 #endif
-#if defined(PCINT2_vect)
+#if defined(PCINT_INPUT_PORT2)
     case 2:
       setFunc(port2.funcs, portBitMask, func);
       port2.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
       port2.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port2.state = PINC;
+      port2.state = PCINT_INPUT_PORT2;
       break;
 #endif
-#if defined(PCINT3_vect)
+#if defined(PCINT_INPUT_PORT3)
     case 3:
       setFunc(port3.funcs, portBitMask, func);
       port3.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
       port3.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port3.state = PIND;
+      port3.state = PCINT_INPUT_PORT3;
       break;
 #endif
     }
@@ -148,28 +149,28 @@ void PcInt::detachInterrupt(uint8_t pin)
     uint8_t pcintGroup = digitalPinToPCICRbit(pin);
     uint8_t portBitMask = digitalPinToBitMask(pin);
     switch (pcintGroup) {
-#if defined(PCINT0_vect)
+#if defined(PCINT_INPUT_PORT0)
     case 0:
       setFunc(port0.funcs, portBitMask, NULL);
       port0.rising &= ~portBitMask;
       port0.falling &= ~portBitMask; 
       break;
 #endif
-#if defined(PCINT1_vect)
+#if defined(PCINT_INPUT_PORT1)
     case 1:
       setFunc(port1.funcs, portBitMask, NULL);
       port1.rising &= ~portBitMask;
       port1.falling &= ~portBitMask;
       break;
 #endif
-#if defined(PCINT2_vect)
+#if defined(PCINT_INPUT_PORT2)
     case 2:
       setFunc(port2.funcs, portBitMask, NULL);
       port2.rising &= ~portBitMask;
       port2.falling &= ~portBitMask;
       break;
 #endif
-#if defined(PCINT3_vect)
+#if defined(PCINT_INPUT_PORT3)
     case 3:
       setFunc(port3.funcs, portBitMask, NULL);
       port3.rising &= ~portBitMask;
@@ -213,20 +214,22 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
   }
   void   (**funcs)(void);
   switch (group) {
+#if defined(PCINT_INPUT_PORT0)
   case 0:
     funcs = port0.funcs;
     break;
-#if defined(PCINT1_vect)
+#endif
+#if defined(PCINT_INPUT_PORT1)
   case 1:
     funcs = port1.funcs;
     break;
 #endif
-#if defined(PCINT2_vect)
+#if defined(PCINT_INPUT_PORT2)
   case 2:
     funcs = port2.funcs;
     break;
 #endif
-#if defined(PCINT3_vect)
+#if defined(PCINT_INPUT_PORT3)
   case 3:
     funcs = port3.funcs;
     break;
@@ -254,18 +257,18 @@ void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
     } \
   }
 
-#if defined(PCINT0_vect)
-IMPLEMENT_ISR(PCINT0_vect, port0, PINA)
+#if defined(PCINT_INPUT_PORT0)
+IMPLEMENT_ISR(PCINT0_vect, port0, PCINT_INPUT_PORT0)
 #endif
 
-#if defined(PCINT1_vect)
-IMPLEMENT_ISR(PCINT1_vect, port1, PINB)
+#if defined(PCINT_INPUT_PORT1)
+IMPLEMENT_ISR(PCINT1_vect, port1, PCINT_INPUT_PORT1)
 #endif
 
-#if defined(PCINT2_vect)
-IMPLEMENT_ISR(PCINT2_vect, port2, PINC)
+#if defined(PCINT_INPUT_PORT2)
+IMPLEMENT_ISR(PCINT2_vect, port2, PCINT_INPUT_PORT2)
 #endif
 
-#if defined(PCINT3_vect)
-IMPLEMENT_ISR(PCINT3_vect, port3, PIND)
+#if defined(PCINT_INPUT_PORT3)
+IMPLEMENT_ISR(PCINT3_vect, port3, PCINT_INPUT_PORT3)
 #endif
