@@ -32,13 +32,21 @@
 class PcInt
 {
 public:
-  static void attachInterrupt(uint8_t pin, void(*func)(void), uint8_t mode=CHANGE);
+  typedef void (*callback)(void);
+  typedef void (*callback_arg)(void *arg, bool value);
+  
+  static void attachInterrupt(uint8_t pin, callback func, uint8_t mode=CHANGE);
+  static void attachInterrupt(uint8_t pin, callback_arg func, void *arg, uint8_t mode=CHANGE);
+  template<typename T> 
+  static inline void attachInterrupt(uint8_t pin, void(*func)(T *arg, bool value), T *arg, uint8_t mode=CHANGE) {
+    attachInterrupt(pin, (PcInt::callback_arg)func, (void*) arg, mode);
+  }
   static void detachInterrupt(uint8_t pin);
   static void enableInterrupt(uint8_t pin);
   static void disableInterrupt(uint8_t pin);
 
   // For diagnostic purposes
-  static void (*getFunc(uint8_t group, uint8_t nr))(void);
+  static callback getFunc(uint8_t group, uint8_t nr);
 };
 
 #endif /* SODAQ_PCINT_H_ */
