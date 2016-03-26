@@ -35,27 +35,10 @@ THE SOFTWARE.
 
 #elif defined(__AVR_ATmega2560__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega640__)
 // Arduino Mega/Mega2560
+// special Port1 case, pins are on 2 HW Pin Ports (E,J)
 #define PCINT_INPUT_PORT0 PINB
 #define PCINT_INPUT_PORT2 PINK
-
-// special Port1 case, pins are on 2 HW Pin Ports (E,J)
-#if defined(PCINT_ENABLE_PCINT16) // PortE
-#if defined(PCINT_ENABLE_PCINT17) || defined(PCINT_ENABLE_PCINT18) \
-   || defined(PCINT_ENABLE_PCINT19) || defined(PCINT_ENABLE_PCINT20) \
-|| defined(PCINT_ENABLE_PCINT21) || defined(PCINT_ENABLE_PCINT22) \
-|| defined(PCINT_ENABLE_PCINT23) // PortJ
-// PortE and PortJ selected
 #define PCINT_INPUT_PORT1 ((PINE & 0x01) | (PINJ << 1))
-#else
-// PortE only selected
-#define PCINT_INPUT_PORT1 PINE
-#endif
-#else
-// PortJ only selected
-// we still have to do the shift because the attach
-// function is not designed for this optimization
-#define PCINT_INPUT_PORT1 (PINJ << 1)
-#endif
 
 #elif defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega16U4__)
 // Arduino Leonardo/Micro
@@ -74,9 +57,6 @@ THE SOFTWARE.
 #elif defined(__AVR_ATtiny13__)
 // Attiny 13A
 #define PCINT_INPUT_PORT0 PINB
-#ifndef portInputRegister
-#define portInputRegister(P) ( (volatile uint8_t *)(PINB) )
-#endif
 
 #elif defined(__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
 // Attiny x4
@@ -94,21 +74,6 @@ THE SOFTWARE.
 // Attiny x41
 #define PCINT_INPUT_PORT0 PINA
 #define PCINT_INPUT_PORT1 PINB
-
-// "iotn841.h" is missing those definitions, so we add them here
-#define PCINT0 0
-#define PCINT1 1
-#define PCINT2 2
-#define PCINT3 3
-#define PCINT4 4
-#define PCINT5 5
-#define PCINT6 6
-#define PCINT7 7
-
-#define PCINT8 0
-#define PCINT9 1
-#define PCINT10 2
-#define PCINT11 3
 
 #else // Microcontroller not supported
 #error PinChangeInterrupt library does not support this MCU.
