@@ -82,10 +82,44 @@ PcIntPort port2;
 PcIntPort port3;
 #endif
 
-/*
- * Set the function pointer in the array using the port's pin bit mask
- */
-static uint8_t bitpos(uint8_t mask)
+
+static inline PcIntPort* get_port(uint8_t port) {
+    switch (port) {
+#if defined(PCINT_INPUT_PORT0)
+        case 0: return &port0;
+#endif
+#if defined(PCINT_INPUT_PORT1)
+        case 1: return &port1;
+#endif
+#if defined(PCINT_INPUT_PORT2)
+        case 2: return &port2;
+#endif
+#if defined(PCINT_INPUT_PORT3)
+        case 3: return &port3;
+#endif
+        default: return nullptr;
+    }
+}
+
+static inline uint8_t get_port_value(uint8_t port) {
+    switch (port) {
+#if defined(PCINT_INPUT_PORT0)
+        case 0: return PCINT_INPUT_PORT0;
+#endif
+#if defined(PCINT_INPUT_PORT1)
+        case 1: return PCINT_INPUT_PORT1;
+#endif
+#if defined(PCINT_INPUT_PORT2)
+        case 2: return PCINT_INPUT_PORT2;
+#endif
+#if defined(PCINT_INPUT_PORT3)
+        case 3: return PCINT_INPUT_PORT3;
+#endif
+        default: return 0;
+    }
+}
+
+static inline uint8_t bitpos(uint8_t mask)
 {
   for (uint8_t i = 0; i < 8; ++i) {
     if (mask & _BV(i)) {
@@ -109,46 +143,17 @@ void PcInt::attachInterrupt(uint8_t pin, callback_arg func, void* arg, uint8_t m
   if (pcicr && pcmsk) {
     uint8_t pcintGroup = digitalPinToPCICRbit(pin);
     uint8_t portBitMask = digitalPinToBitMask(pin);
-    switch (pcintGroup) {
-#if defined(PCINT_INPUT_PORT0)
-    case 0:
-      port0.funcs[bitpos(portBitMask)] = func;
-      port0.args[bitpos(portBitMask)] = arg;
-      port0.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
-      port0.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port0.state = PCINT_INPUT_PORT0;
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT1)
-    case 1:
-      port1.funcs[bitpos(portBitMask)] = func;
-      port1.args[bitpos(portBitMask)] = arg;
-      port1.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
-      port1.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port1.state = PCINT_INPUT_PORT1;
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT2)
-    case 2:
-      port2.funcs[bitpos(portBitMask)] = func;
-      port2.args[bitpos(portBitMask)] = arg;
-      port2.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
-      port2.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port2.state = PCINT_INPUT_PORT2;
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT3)
-    case 3:
-      port3.funcs[bitpos(portBitMask)] = func;
-      port3.args[bitpos(portBitMask)] = arg;
-      port3.rising |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
-      port3.falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
-      port3.state = PCINT_INPUT_PORT3;
-      break;
-#endif
+    PcIntPort* port = get_port(pcintGroup);
+
+    if (port) {
+      port->funcs[bitpos(portBitMask)] = func;
+      port->args[bitpos(portBitMask)] = arg;
+      port->rising  |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port->falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
+      port->state    = get_port_value(pcintGroup);
+      *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
+      *pcicr |= _BV(digitalPinToPCICRbit(pin));
     }
-    *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
-    *pcicr |= _BV(digitalPinToPCICRbit(pin));
   }
 }
 
@@ -159,44 +164,19 @@ void PcInt::detachInterrupt(uint8_t pin)
   if (pcicr && pcmsk) {
     uint8_t pcintGroup = digitalPinToPCICRbit(pin);
     uint8_t portBitMask = digitalPinToBitMask(pin);
-    switch (pcintGroup) {
-#if defined(PCINT_INPUT_PORT0)
-    case 0:
-      port0.funcs[bitpos(portBitMask)] = nullptr;
-      port0.args[bitpos(portBitMask)] = nullptr;
-      port0.rising &= ~portBitMask;
-      port0.falling &= ~portBitMask; 
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT1)
-    case 1:
-      port1.funcs[bitpos(portBitMask)] = nullptr;
-      port1.args[bitpos(portBitMask)] = nullptr;
-      port1.rising &= ~portBitMask;
-      port1.falling &= ~portBitMask;
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT2)
-    case 2:
-      port2.funcs[bitpos(portBitMask)] = nullptr;
-      port2.args[bitpos(portBitMask)] = nullptr;
-      port2.rising &= ~portBitMask;
-      port2.falling &= ~portBitMask;
-      break;
-#endif
-#if defined(PCINT_INPUT_PORT3)
-    case 3:
-      port3.funcs[bitpos(portBitMask)] = nullptr;
-      port3.args[bitpos(portBitMask)] = nullptr;
-      port3.rising &= ~portBitMask;
-      port3.falling &= ~portBitMask;
-      break;
-#endif
-    }
-    *pcmsk &= ~_BV(digitalPinToPCMSKbit(pin));
-    //Switch off the group if all of the group are now off
-    if (*pcmsk == 0x00F){ //Alternatively "if (!*pcmsk)"
-      *pcicr &= ~_BV(digitalPinToPCICRbit(pin));
+    PcIntPort* port = get_port(pcintGroup);
+    
+    if (port) {
+      port->funcs[bitpos(portBitMask)] = nullptr;
+      port->args[bitpos(portBitMask)] = nullptr;
+      port->rising &= ~portBitMask;
+      port->falling &= ~portBitMask; 
+
+      *pcmsk &= ~_BV(digitalPinToPCMSKbit(pin));
+      //Switch off the group if all of the group are now off
+      if (*pcmsk == 0x00F){ //Alternatively "if (!*pcmsk)"
+        *pcicr &= ~_BV(digitalPinToPCICRbit(pin));
+      }
     }
   }
 }
@@ -224,28 +204,11 @@ void PcInt::disableInterrupt(uint8_t pin)
  */
 PcInt::callback PcInt::getFunc(uint8_t group, uint8_t nr)
 {
-  if (nr >= 8) {
-    return 0;
-  }
-  switch (group) {
-#if defined(PCINT_INPUT_PORT0)
-  case 0:
-    return (callback)port0.funcs[nr];
-#endif
-#if defined(PCINT_INPUT_PORT1)
-  case 1:
-    return (callback)port1.funcs[nr];
-#endif
-#if defined(PCINT_INPUT_PORT2)
-  case 2:
-    return (callback)port2.funcs[nr];
-#endif
-#if defined(PCINT_INPUT_PORT3)
-  case 3:
-    return (callback)port3.funcs[nr];
-#endif
-  default:
-    return 0;
+  PcIntPort* port = get_port(group);
+  if (port && nr < 8) {
+    return (callback)port->funcs[nr];
+  } else {
+    return nullptr;
   }
 }
 
