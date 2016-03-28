@@ -26,35 +26,27 @@
 #ifndef SODAQ_PCINT_H_
 #define SODAQ_PCINT_H_
 
+#include <Arduino.h>
 #include <stdint.h>
 
 class PcInt
 {
 public:
-  static void attachInterrupt(uint8_t pin, void (*func)(void));
+  typedef void (*callback)(void);
+  typedef void (*callback_arg)(void *arg, bool value);
+  
+  static void attachInterrupt(uint8_t pin, callback func, uint8_t mode=CHANGE);
+  static void attachInterrupt(uint8_t pin, callback_arg func, void *arg, uint8_t mode=CHANGE);
+  template<typename T> 
+  static inline void attachInterrupt(uint8_t pin, void(*func)(T *arg, bool value), T *arg, uint8_t mode=CHANGE) {
+    attachInterrupt(pin, (PcInt::callback_arg)func, (void*) arg, mode);
+  }
   static void detachInterrupt(uint8_t pin);
   static void enableInterrupt(uint8_t pin);
   static void disableInterrupt(uint8_t pin);
 
-  // These must be public so they can be called from ISR
-  static inline void handlePCINT0() __attribute__((__always_inline__));
-  static inline void handlePCINT1() __attribute__((__always_inline__));
-  static inline void handlePCINT2() __attribute__((__always_inline__));
-  static inline void handlePCINT3() __attribute__((__always_inline__));
-
   // For diagnostic purposes
-  static void (*getFunc(uint8_t group, uint8_t nr))(void);
-private:
-  static void   (*_funcs0[8])(void);
-#if defined(PCINT1_vect)
-  static void   (*_funcs1[8])(void);
-#endif
-#if defined(PCINT2_vect)
-  static void   (*_funcs2[8])(void);
-#endif
-#if defined(PCINT3_vect)
-  static void   (*_funcs3[8])(void);
-#endif
+  static callback getFunc(uint8_t group, uint8_t nr);
 };
 
 #endif /* SODAQ_PCINT_H_ */

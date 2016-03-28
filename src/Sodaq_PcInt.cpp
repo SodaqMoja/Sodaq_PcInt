@@ -47,75 +47,138 @@
  * it can see which of the port pins changed.
  */
 
-#include <avr/interrupt.h>
-#include <Arduino.h>
-
 #include "Sodaq_PcInt.h"
+#include "PinChangeInterruptBoards.h"
+#include <avr/interrupt.h>
 
-#if defined(PCINT0_vect)
-void   (*PcInt::_funcs0[8])(void);
-#endif
-#if defined(PCINT1_vect)
-void   (*PcInt::_funcs1[8])(void);
-#endif
-#if defined(PCINT2_vect)
-void   (*PcInt::_funcs2[8])(void);
-#endif
-#if defined(PCINT3_vect)
-void   (*PcInt::_funcs3[8])(void);
-#endif
-
-/*
- * Set the function pointer in the array using the port's pin bit mask
- */
-static void setFunc(void (*funcs[])(void), uint8_t portBitMask, void (*func)(void))
+class PcIntPort
 {
-  for (uint8_t i = 0; i < 8; ++i) {
-    if (portBitMask & 1) {
-      funcs[i] = func;
-      break;
+public:
+  PcInt::callback_arg funcs[8];
+  void* args[8];
+  uint8_t state;
+  uint8_t rising;
+  uint8_t falling;
+  
+  PcIntPort() 
+  : funcs({nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}),
+    state(0),
+    rising(0),
+    falling(0)
+  { }
+};
+
+
+#if defined(PCINT_INPUT_PORT0)
+PcIntPort port0;
+#endif
+#if defined(PCINT_INPUT_PORT1)
+PcIntPort port1;
+#endif
+#if defined(PCINT_INPUT_PORT2)
+PcIntPort port2;
+#endif
+#if defined(PCINT_INPUT_PORT3)
+PcIntPort port3;
+#endif
+
+
+static inline PcIntPort* get_port(uint8_t port) {
+    switch (port) {
+#if defined(PCINT_INPUT_PORT0)
+        case 0: return &port0;
+#endif
+#if defined(PCINT_INPUT_PORT1)
+        case 1: return &port1;
+#endif
+#if defined(PCINT_INPUT_PORT2)
+        case 2: return &port2;
+#endif
+#if defined(PCINT_INPUT_PORT3)
+        case 3: return &port3;
+#endif
+        default: return nullptr;
     }
-    portBitMask >>= 1;
-  }
 }
 
-void PcInt::attachInterrupt(uint8_t pin, void (*func)(void))
+static inline uint8_t get_port_value(uint8_t port) {
+    switch (port) {
+#if defined(PCINT_INPUT_PORT0)
+        case 0: return PCINT_INPUT_PORT0;
+#endif
+#if defined(PCINT_INPUT_PORT1)
+        case 1: return PCINT_INPUT_PORT1;
+#endif
+#if defined(PCINT_INPUT_PORT2)
+        case 2: return PCINT_INPUT_PORT2;
+#endif
+#if defined(PCINT_INPUT_PORT3)
+        case 3: return PCINT_INPUT_PORT3;
+#endif
+        default: return 0;
+    }
+}
+
+static inline uint8_t bitpos(uint8_t mask)
+{
+  for (uint8_t i = 0; i < 8; ++i) {
+    if (mask & _BV(i)) {
+      return i;
+    }
+  }
+  return -1; //Should not happen
+}
+
+void PcInt::attachInterrupt(uint8_t pin, callback func, uint8_t mode) 
+{
+  //On AVR's default calling convention, if we call a no-arg funcion passing an argument,
+  //it is silently ignored and nothing goes wrong.
+  attachInterrupt(pin, (callback_arg)func, nullptr, mode);
+}
+
+void PcInt::attachInterrupt(uint8_t pin, callback_arg func, void* arg, uint8_t mode)
 {
   volatile uint8_t * pcicr = digitalPinToPCICR(pin);
   volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
   if (pcicr && pcmsk) {
     uint8_t pcintGroup = digitalPinToPCICRbit(pin);
     uint8_t portBitMask = digitalPinToBitMask(pin);
-    switch (pcintGroup) {
-#if defined(PCINT0_vect)
-    case 0:
-      setFunc(_funcs0, portBitMask, func);
-      break;
-#endif
-#if defined(PCINT1_vect)
-    case 1:
-      setFunc(_funcs1, portBitMask, func);
-      break;
-#endif
-#if defined(PCINT2_vect)
-    case 2:
-      setFunc(_funcs2, portBitMask, func);
-      break;
-#endif
-#if defined(PCINT3_vect)
-    case 3:
-      setFunc(_funcs3, portBitMask, func);
-      break;
-#endif
+    PcIntPort* port = get_port(pcintGroup);
+
+    if (port) {
+      port->funcs[bitpos(portBitMask)] = func;
+      port->args[bitpos(portBitMask)] = arg;
+      port->rising  |= (mode == RISING || mode == CHANGE) ? portBitMask : 0;
+      port->falling |= (mode == FALLING || mode == CHANGE) ? portBitMask : 0;
+      port->state    = get_port_value(pcintGroup);
+      *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
+      *pcicr |= _BV(digitalPinToPCICRbit(pin));
     }
-    *pcmsk |= _BV(digitalPinToPCMSKbit(pin));
-    *pcicr |= _BV(digitalPinToPCICRbit(pin));
   }
 }
 
 void PcInt::detachInterrupt(uint8_t pin)
 {
-  //_funcs[pin] = 0;
+  volatile uint8_t * pcicr = digitalPinToPCICR(pin);
+  volatile uint8_t * pcmsk = digitalPinToPCMSK(pin);
+  if (pcicr && pcmsk) {
+    uint8_t pcintGroup = digitalPinToPCICRbit(pin);
+    uint8_t portBitMask = digitalPinToBitMask(pin);
+    PcIntPort* port = get_port(pcintGroup);
+    
+    if (port) {
+      port->funcs[bitpos(portBitMask)] = nullptr;
+      port->args[bitpos(portBitMask)] = nullptr;
+      port->rising &= ~portBitMask;
+      port->falling &= ~portBitMask; 
+
+      *pcmsk &= ~_BV(digitalPinToPCMSKbit(pin));
+      //Switch off the group if all of the group are now off
+      if (*pcmsk == 0x00F){ //Alternatively "if (!*pcmsk)"
+        *pcicr &= ~_BV(digitalPinToPCICRbit(pin));
+      }
+    }
+  }
 }
 
 void PcInt::enableInterrupt(uint8_t pin)
@@ -139,94 +202,41 @@ void PcInt::disableInterrupt(uint8_t pin)
  *
  * This function serves just for diagnostic purposes.
  */
-void (*PcInt::getFunc(uint8_t group, uint8_t nr))(void)
+PcInt::callback PcInt::getFunc(uint8_t group, uint8_t nr)
 {
-  if (nr >= 8) {
-    return 0;
+  PcIntPort* port = get_port(group);
+  if (port && nr < 8) {
+    return (callback)port->funcs[nr];
+  } else {
+    return nullptr;
   }
-  void   (**funcs)(void);
-  switch (group) {
-  case 0:
-    funcs = _funcs0;
-    break;
-#if defined(PCINT1_vect)
-  case 1:
-    funcs = _funcs1;
-    break;
-#endif
-#if defined(PCINT2_vect)
-  case 2:
-    funcs = _funcs2;
-    break;
-#endif
-#if defined(PCINT3_vect)
-  case 3:
-    funcs = _funcs3;
-    break;
-#endif
-  default:
-    return 0;
-    break;
-  }
-  return funcs[nr];
 }
 
-#if defined(PCINT0_vect)
-inline void PcInt::handlePCINT0()
-{
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs0[nr]) {
-      (*_funcs0[nr])();
-    }
+#define IMPLEMENT_ISR(vect, port, pin_register) \
+  ISR(vect) \
+  { \
+    uint8_t new_state = pin_register; \
+    uint8_t trigger_pins = (port.state ^ new_state) & ( (port.rising & new_state) | (port.falling & ~new_state) ); \
+    port.state = new_state; \
+    for (uint8_t nr = 0; nr < 8; ++nr) { \
+      if ((trigger_pins & _BV(nr)) && port.funcs[nr]) { \
+        (*port.funcs[nr])(port.args[nr], bool(_BV(nr) & new_state)); \
+      } \
+    } \
   }
-}
-ISR(PCINT0_vect)
-{
-  PcInt::handlePCINT0();
-}
+
+#if defined(PCINT_INPUT_PORT0)
+IMPLEMENT_ISR(PCINT0_vect, port0, PCINT_INPUT_PORT0)
 #endif
 
-#if defined(PCINT1_vect)
-inline void PcInt::handlePCINT1()
-{
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs1[nr]) {
-      (*_funcs1[nr])();
-    }
-  }
-}
-ISR(PCINT1_vect)
-{
-  PcInt::handlePCINT1();
-}
+#if defined(PCINT_INPUT_PORT1)
+IMPLEMENT_ISR(PCINT1_vect, port1, PCINT_INPUT_PORT1)
 #endif
 
-#if defined(PCINT2_vect)
-inline void PcInt::handlePCINT2()
-{
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs2[nr]) {
-      (*_funcs2[nr])();
-    }
-  }
-}
-ISR(PCINT2_vect)
-{
-  PcInt::handlePCINT2();
-}
+#if defined(PCINT_INPUT_PORT2)
+IMPLEMENT_ISR(PCINT2_vect, port2, PCINT_INPUT_PORT2)
 #endif
 
-#if defined(PCINT3_vect)
-inline void PcInt::handlePCINT3()
-{
-  for (uint8_t nr = 0; nr < 8; ++nr) {
-    if (_funcs3[nr]) {
-      (*_funcs3[nr])();
-    }
-  }
-}
-ISR(PCINT3_vect)
-{
-  PcInt::handlePCINT3();
-}
+#if defined(PCINT_INPUT_PORT3)
+IMPLEMENT_ISR(PCINT3_vect, port3, PCINT_INPUT_PORT3)
 #endif
